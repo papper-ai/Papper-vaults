@@ -1,6 +1,7 @@
 services:
-  vaults_service_postgres:
+  papper-vaults-postgres:
     image: postgres:16.1-bullseye
+    container_name: papper-vaults-postgres
     restart: unless-stopped
     volumes:
       - vaults_service_postgres_data:/var/lib/postgresql/data
@@ -11,9 +12,10 @@ services:
     ports:
       - 8280:5432
     networks:
-      - vaults_services_network
-  vaults_service:
+      - papper-vaults-service-network
+  papper-vaults-service:
     build: vaults_service
+    container_name: papper-vaults-service
     restart: unless-stopped
     volumes:
       - ./vaults_service:/usr/src/vaults_service
@@ -22,20 +24,20 @@ services:
     ports:
       - 8200:8000
     depends_on:
-      - vaults_service_postgres
+      - papper-vaults-postgres
     networks:
-      - vaults_services_network
+      - papper-vaults-service-network
       - papper-backend
     command: >
       sh -c "alembic upgrade head && 
       uvicorn main:app --host 0.0.0.0 --port 8000 --reload --log-config /usr/src/vaults_service/uvicorn_logging.conf"
 
 volumes:
-  vaults_service_postgres_data:
+  papper-vaults-postgres-volume:
 
 networks:
-  vaults_services_network:
-    name: vaults_services_network
+  papper-vaults-service-network:
+    name: papper-vaults-service-network
   papper-backend:
     name: papper-backend
     external: true
