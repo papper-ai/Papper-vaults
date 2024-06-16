@@ -9,7 +9,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import HTTPException
 
 from src.database.models import Document, Vault
-from src.database.repositories import DocumentRepository, VaultRepository
+from src.database.postgres_repositories import DocumentRepository, VaultRepository
+from src.database.s3_repositories import S3Repository
 from src.utils.exceptions import EmptyFile, UnsupportedFileType
 from src.utils.readers import read_document
 from src.utils.requests import (
@@ -54,10 +55,16 @@ async def add_vault(
 
 
 async def handle_document(
-    file: UploadFile, vault_id: UUID, document_repository: DocumentRepository
+    file: UploadFile,
+    vault_id: UUID,
+    document_repository: DocumentRepository,
+    s3_repository: S3Repository,
 ) -> Document:
-    id = uuid.uuid4()  # Generate random unique identifier
-
+    id = uuid.uuid4()
+    
+    content = await file.read()
+    file.file.seek(0)
+    
     text = await read_document(file)
 
     if text == "":
@@ -71,6 +78,8 @@ async def handle_document(
     )
 
     await document_repository.add(document)
+
+    await s3_repository.put(content, id)
 
     return document
 
@@ -107,7 +116,8 @@ async def create_knowledge_base(
         CreateRequestToKBService(
             vault_id=vault_id,
             documents=[
-                DocumentText(document_id=doc.id, document_name=doc.name, text=doc.text) for doc in documents
+                DocumentText(document_id=doc.id, document_name=doc.name, text=doc.text)
+                for doc in documents
             ],
         )
     )
@@ -123,7 +133,9 @@ async def add_document_to_knowledge_base(vault_id: UUID, document: Document) -> 
     upload_request_body = jsonable_encoder(
         AddDocumentRequestToKBService(
             vault_id=vault_id,
-            document=DocumentText(document_id=document.id, document_name=document.name, text=document.text),
+            document=DocumentText(
+                document_id=document.id, document_name=document.name, text=document.text
+            ),
         )
     )
 
@@ -145,11 +157,16 @@ async def create_vault(
 
     vault_repository = VaultRepository()
     vault = await add_vault(create_vault_request, vault_repository)
-
+    
     documents = await asyncio.gather(
-        *[handle_document(file, vault.id, DocumentRepository()) for file in files],
+        *[handle_document(file, vault.id, DocumentRepository(), S3Repository()) for file in files],
         return_exceptions=True,
     )
+    
+    for result in documents:
+        if isinstance(result, BaseException):
+            logging.exception('Task exception', exc_info=result)
+
     # On any UnsupportedFileType, delete the entire vault and raise an HTTPException
     for result in documents:
         if isinstance(result, UnsupportedFileType):

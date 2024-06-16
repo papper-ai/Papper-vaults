@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import Body
 from fastapi.exceptions import HTTPException
 
-from src.database.repositories import DocumentRepository, VaultRepository
+from src.database.postgres_repositories import DocumentRepository, VaultRepository
 
 
 async def vault_exists(vault_id: Annotated[UUID, Body()]) -> VaultRepository:

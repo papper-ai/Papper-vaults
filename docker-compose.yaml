@@ -23,7 +23,6 @@ services:
       - 8200:8000
     depends_on:
       - vaults_service_postgres
-      - graph_kb_service
     networks:
       - vaults_services_network
       - papper-backend

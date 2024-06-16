@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, UploadFile, status
 
-from src.database.repositories import DocumentRepository, VaultRepository
+from src.database.postgres_repositories import DocumentRepository, VaultRepository
 from src.vaults.dependencies import document_exists, vault_exists
 from src.vaults.schemas import (
     CreateVaultRequest,
