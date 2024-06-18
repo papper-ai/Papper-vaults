@@ -4,7 +4,7 @@ services:
     container_name: papper-vaults-postgres
     restart: unless-stopped
     volumes:
-      - vaults_service_postgres_data:/var/lib/postgresql/data
+      - papper-vaults-postgres-volume:/var/lib/postgresql/data
     environment:
       - POSTGRES_DB=${VAULTS_SERVICE_POSTGRES_DB_NAME}
       - POSTGRES_USER=${VAULTS_SERVICE_POSTGRES_DB_USER}
