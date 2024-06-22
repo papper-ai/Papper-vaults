@@ -7,13 +7,14 @@ from src.vaults.schemas import (
     DropRequestToKBService,
 )
 
+from src.config import settings
 
 async def send_create_request_to_graph_kb_service(
     body: CreateRequestToKBService,
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            "http://graph_kb_service:8000/create", json=body
+            f"{settings.graph_service_url}/create", json=body
         ) as response:
             return await response.json()
 
@@ -23,7 +24,7 @@ async def send_add_document_request_to_graph_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            "http://graph_kb_service:8000/add_document", json=body
+            f"{settings.graph_service_url}/add_document", json=body
         ) as response:
             return await response.json()
 
@@ -33,7 +34,7 @@ async def send_drop_request_to_graph_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.delete(
-            "http://graph_kb_service:8000/drop", json=body
+            f"{settings.graph_service_url}/drop", json=body
         ) as response:
             return await response.json()
 
@@ -43,7 +44,7 @@ async def send_delete_document_request_to_graph_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.delete(
-            "http://graph_kb_service:8000/delete_document", json=body
+            f"{settings.graph_service_url}/delete_document", json=body
         ) as response:
             return await response.json()
 
@@ -53,7 +54,7 @@ async def send_create_request_to_vector_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.post(
-                "http://vector_kb_service:8000/create", json=body
+                f"{settings.vector_service_url}/create", json=body
         ) as response:
             return await response.json()
 
@@ -63,7 +64,7 @@ async def send_add_document_request_to_vector_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.post(
-                "http://vector_kb_service:8000/add_document", json=body
+                f"{settings.vector_service_url}/add_document", json=body
         ) as response:
             return await response.json()
 
@@ -73,7 +74,7 @@ async def send_drop_request_to_vector_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.delete(
-                "http://vector_kb_service:8000/drop", json=body
+                f"{settings.vector_service_url}/drop", json=body
         ) as response:
             return await response.json()
 
@@ -83,6 +84,6 @@ async def send_delete_document_request_to_vector_kb_service(
 ) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.delete(
-                "http://vector_kb_service:8000/delete_document", json=body
+                f"{settings.vector_service_url}/delete_document", json=body
         ) as response:
             return await response.json()

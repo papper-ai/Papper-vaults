@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     db_user: str
     db_password: str
 
+    graph_service_url: str = "http://papper-graph-kb-service:8000"
+    vector_service_url: str = "http://papper-vector-kb-service:8000"
+    
     s3_access_key: str
     s3_secret_key: str
     s3_endpoint_url: str
