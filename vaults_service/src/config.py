@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     s3_bucket_name: str
     verify: bool = False
     
+    encryption_password: str
+    
     @property
     def database_url(self) -> str:
         return f"{self.db_dialect}+{self.db_async_driver}://{self.db_user}:{self.db_password}@{self.db_host}:5432/{self.db_name}"

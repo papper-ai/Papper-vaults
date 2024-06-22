@@ -4,10 +4,16 @@ import uuid
 from typing import List
 from uuid import UUID
 
+from Crypto.Cipher import AES
+from Crypto.Hash import HMAC, SHA256
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad
 from fastapi import BackgroundTasks, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import HTTPException
 
+from src.config import settings
 from src.database.models import Document, Vault
 from src.database.postgres_repositories import DocumentRepository, VaultRepository
 from src.database.s3_repositories import S3Repository
@@ -37,6 +43,30 @@ from src.vaults.schemas import (
 )
 
 
+async def encrypt_data(data, password):
+    # Generate a random salt and initialization vector (IV)
+    salt = get_random_bytes(16)
+    iv = get_random_bytes(16)
+
+    # Derive a key from the password
+    key = PBKDF2(
+        password,
+        salt,
+        dkLen=32,
+        count=1000,
+        prf=lambda p, s: HMAC.new(p, s, SHA256).digest(),
+    )
+
+    # Create cipher object and encrypt the data
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    ct_bytes = cipher.encrypt(pad(data, AES.block_size))
+
+    # Combine salt, iv, and ciphertext into a single bytes object
+    encrypted_data = salt + iv + ct_bytes
+
+    return encrypted_data
+
+
 async def add_vault(
     create_vault_request: CreateVaultRequest, vault_repository: VaultRepository
 ) -> Vault:
@@ -61,10 +91,10 @@ async def handle_document(
     s3_repository: S3Repository,
 ) -> Document:
     id = uuid.uuid4()
-    
+
     content = await file.read()
     file.file.seek(0)
-    
+
     text = await read_document(file)
 
     if text == "":
@@ -79,7 +109,10 @@ async def handle_document(
 
     await document_repository.add(document)
 
-    await s3_repository.put(content, id)
+    encrypted_content = await encrypt_data(
+        content, password=settings.encryption_password
+    )
+    await s3_repository.put(encrypted_content, id)
 
     return document
 
@@ -157,15 +190,18 @@ async def create_vault(
 
     vault_repository = VaultRepository()
     vault = await add_vault(create_vault_request, vault_repository)
-    
+
     documents = await asyncio.gather(
-        *[handle_document(file, vault.id, DocumentRepository(), S3Repository()) for file in files],
+        *[
+            handle_document(file, vault.id, DocumentRepository(), S3Repository())
+            for file in files
+        ],
         return_exceptions=True,
     )
-    
+
     for result in documents:
         if isinstance(result, BaseException):
-            logging.exception('Task exception', exc_info=result)
+            logging.exception("Task exception", exc_info=result)
 
     # On any UnsupportedFileType, delete the entire vault and raise an HTTPException
     for result in documents:
