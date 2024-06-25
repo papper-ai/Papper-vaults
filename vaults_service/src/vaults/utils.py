@@ -255,7 +255,7 @@ async def add_document(
     logging.info(f"File received: {file.filename}")
 
     try:
-        document = await handle_document(file, vault_id, DocumentRepository())
+        document = await handle_document(file, vault_id, DocumentRepository(), S3Repository())
     except UnsupportedFileType as e:
         raise HTTPException(status_code=406, detail=e.message)
     except EmptyFile as e:
